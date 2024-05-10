@@ -6,11 +6,13 @@ import me.centauri07.chatreport.plugin.chat.Chat
 import me.centauri07.chatreport.plugin.chat.ChatHistory
 import me.centauri07.chatreport.plugin.chat.ChatHistoryRepository
 import me.centauri07.chatreport.plugin.configuration.InventoryConfiguration
+import me.centauri07.chatreport.plugin.configuration.Item
 import me.centauri07.chatreport.plugin.configuration.PluginConfiguration
 import me.centauri07.chatreport.util.extensions.component
 import me.centauri07.chatreport.util.extensions.toPlainText
 import me.centauri07.chatreport.util.serializer.YamlFileSerializer
 import org.bukkit.Bukkit
+import org.bukkit.Material
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
@@ -25,7 +27,41 @@ class ChatReportPlugin : JavaPlugin(), Listener {
 
     private val pluginConfiguration: PluginConfiguration = YamlFileSerializer(
         PluginConfiguration::class.java,
-        PluginConfiguration("", 10, InventoryConfiguration("", listOf(), listOf())),
+        PluginConfiguration(
+            "mongodb://localhost:27017/",
+            10,
+            InventoryConfiguration(
+                "<dark_green>%target_name%'s Chat History",
+                listOf(
+                    "#########",
+                    "#       #",
+                    "#       #",
+                    "#       #",
+                    "#       #",
+                    "##<###>##"
+                ),
+                listOf(
+                    Item(
+                        '*', Material.PAPER, "<gold>Message #%index%", listOf(
+                            "<gray>Content: <gold>%content%",
+                            "<gray>Date: <gold>%date%",
+                            "<gray>Is reported: <gold>%is_reported%",
+                            "",
+                            "<green>Click to report!"
+                        ), null
+                    ),
+                    Item(
+                        '#', Material.LIME_STAINED_GLASS_PANE, "", listOf(), null
+                    ),
+                    Item(
+                        '>', Material.ARROW, "<gold>Next page", listOf("", "<green>Click to next page!"), "next"
+                    ),
+                    Item(
+                        '<', Material.ARROW, "<gold>Previous page", listOf("", "<green>Click to previous page!"), "previous"
+                    )
+                )
+            )
+        ),
         File(dataFolder, "config.yml")
     ).value
 
