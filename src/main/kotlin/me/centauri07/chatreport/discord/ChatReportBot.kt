@@ -4,6 +4,7 @@ import me.centauri07.chatreport.discord.configuration.Author
 import me.centauri07.chatreport.discord.configuration.DiscordConfiguration
 import me.centauri07.chatreport.discord.configuration.EmbedMessage
 import me.centauri07.chatreport.plugin.chat.Chat
+import me.centauri07.chatreport.plugin.chat.ChatHistoryRepository
 import me.centauri07.chatreport.util.extensions.applyPlaceholders
 import me.centauri07.chatreport.util.extensions.isValidDuration
 import me.centauri07.chatreport.util.serializer.YamlFileSerializer
@@ -11,6 +12,7 @@ import me.centauri07.jarbapi.BotApplication
 import me.centauri07.jarbapi.component.callback
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.hooks.SubscribeEvent
+import net.dv8tion.jda.api.interactions.components.buttons.Button
 import net.dv8tion.jda.api.interactions.components.text.TextInput
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle
 import net.dv8tion.jda.api.interactions.modals.Modal
@@ -50,31 +52,33 @@ object ChatReportBot : BotApplication() {
         registerListener(this)
     }
 
-    fun report(reporter: Player, reportedPlayer: Player, chat: Chat): Boolean {
+    fun report(executor: Player, target: Player, chat: Chat): Boolean {
 
         val channel = jda.getTextChannelById(discordConfiguration.chatReportChannel) ?: throw NullPointerException("Report channel not found.")
 
         channel.sendMessageEmbeds(
             discordConfiguration.chatReportMessageEmbed.toDiscordEmbed(
                 mapOf(
-                    "%reporter_name%" to reporter.name,
-                    "%reporter_uuid%" to reporter.uniqueId.toString(),
-                    "%reported_player_name%" to reportedPlayer.name,
-                    "reported_player_uuid%" to reporter.uniqueId.toString(),
+                    "%executor_name%" to executor.name,
+                    "%executor_uuid%" to executor.uniqueId.toString(),
+                    "%target_name%" to target.name,
+                    "%target_uuid%" to target.uniqueId.toString(),
                     "%content%" to chat.content,
                     "%date%" to SimpleDateFormat("yyyy-MM-dd hh:mm:ss").format(Date.from(chat.date)),
                 )
             ).build()
-        )
+        ).addActionRow(Button.danger("cbr-${target.uniqueId}", "Mute")).queue()
 
         chat.isReported = true
+
+        ChatHistoryRepository.save(target.uniqueId)
 
         return true
 
     }
 
     @SubscribeEvent
-    fun event(e: ButtonInteractionEvent) {
+    fun on(e: ButtonInteractionEvent) {
 
         if (e.button.id?.startsWith("cbr-") == false) return
 
@@ -120,6 +124,8 @@ object ChatReportBot : BotApplication() {
                             )
                         )
                     )
+
+                    it.reply("Command has been successfully executed.").setEphemeral(true)
 
                 }
         ).queue()
