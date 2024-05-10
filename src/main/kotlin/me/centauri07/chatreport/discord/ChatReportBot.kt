@@ -1,5 +1,6 @@
 package me.centauri07.chatreport.discord
 
+import me.centauri07.chatreport.discord.configuration.Author
 import me.centauri07.chatreport.discord.configuration.DiscordConfiguration
 import me.centauri07.chatreport.discord.configuration.EmbedMessage
 import me.centauri07.chatreport.plugin.chat.Chat
@@ -29,7 +30,9 @@ object ChatReportBot : BotApplication() {
             DiscordConfiguration::class.java,
             DiscordConfiguration(
                 "token", 0, EmbedMessage(
-                    title = "Chat report from %executor%"
+                    author = Author("%target_name% has been reported by %executor_name%", null, null),
+                    color = "#dbc85a",
+                    thumbnail = "https://mc-heads.net/head/%target_uuid%/left"
                 ), "mute %player% %duration% %reason%"
             ),
             File(dataFolder, "configuration.yml")
