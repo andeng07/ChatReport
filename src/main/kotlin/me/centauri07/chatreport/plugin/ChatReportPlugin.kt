@@ -28,11 +28,14 @@ class ChatReportPlugin : JavaPlugin(), Listener {
         File(dataFolder, "config.yml")
     ).value
 
-    private val chatReportBot: ChatReportBot = ChatReportBot(this)
-    private val chatReportRepository: ChatHistoryRepository = ChatHistoryRepository(File(dataFolder, "chat-histories"))
-
     override fun onEnable() {
+        ChatReportBot.dataFolder = dataFolder
+
+        ChatHistoryRepository.repositoryFolder = dataFolder
+
         Bukkit.getPluginManager().registerEvents(this, this)
+
+        ChatReportBot.enable()
     }
 
     @EventHandler
@@ -40,13 +43,13 @@ class ChatReportPlugin : JavaPlugin(), Listener {
 
         Bukkit.getScheduler().runTaskAsynchronously(
             this, Runnable {
-                chatReportRepository.find(e.player.uniqueId)
+                ChatHistoryRepository.find(e.player.uniqueId)
                     ?.addChat(
                         pluginConfiguration.chatHistoryLength,
                         Chat(e.message().toPlainText(), Instant.now(), false)
                     )
 
-                chatReportRepository.save(e.player.uniqueId)
+                ChatHistoryRepository.save(e.player.uniqueId)
             })
 
         getCommand("chatreport")?.setExecutor(this)
@@ -65,14 +68,21 @@ class ChatReportPlugin : JavaPlugin(), Listener {
             return true
         }
 
-        val player = Bukkit.getOfflinePlayer(args[0]).player ?: Bukkit.getOfflinePlayer(UUID.fromString(args[0])).player ?: run {
-            sender.sendMessage("<red>Unable to find player. (${args[0]})")
+        val player =
+            Bukkit.getOfflinePlayer(args[0]).player ?: Bukkit.getOfflinePlayer(UUID.fromString(args[0])).player ?: run {
+                sender.sendMessage("<red>Unable to find player. (${args[0]})")
 
-            return true
+                return true
+            }
+
+        if (player.hasPermission("chatreport.exempt")) {
+            sender.sendMessage("<red>You can't view ${player.name}'s chat history.")
+            return false
         }
 
-        chatReportRepository.find(player.uniqueId)
-            ?.let { pluginConfiguration.inventoryConfiguration.inventory(sender, it) } ?: sender.sendMessage("<red>Player doesn't have a chat history.")
+        ChatHistoryRepository.find(player.uniqueId)
+            ?.let { pluginConfiguration.inventoryConfiguration.inventory(sender, player, it) }
+            ?: sender.sendMessage("<red>Player doesn't have a chat history.")
 
 
         return true

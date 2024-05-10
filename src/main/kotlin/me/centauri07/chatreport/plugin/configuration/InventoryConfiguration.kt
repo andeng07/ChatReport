@@ -6,12 +6,11 @@ import dev.triumphteam.gui.guis.Gui
 import dev.triumphteam.gui.guis.GuiItem
 import dev.triumphteam.gui.guis.PaginatedGui
 import kotlinx.serialization.Serializable
+import me.centauri07.chatreport.discord.ChatReportBot
 import me.centauri07.chatreport.plugin.chat.ChatHistory
 import me.centauri07.chatreport.util.extensions.applyPlaceholders
 import me.centauri07.chatreport.util.extensions.component
-import org.bukkit.Bukkit
 import org.bukkit.Material
-import org.bukkit.OfflinePlayer
 import org.bukkit.entity.Player
 import java.lang.NullPointerException
 import java.text.SimpleDateFormat
@@ -26,21 +25,19 @@ class InventoryConfiguration(
     val items: List<Item>
 ) {
 
-    fun inventory(executor: Player, chatHistory: ChatHistory): PaginatedGui {
-
-        val player: OfflinePlayer = Bukkit.getOfflinePlayer(chatHistory.uuid)
+    fun inventory(executor: Player, reportedPlayer: Player, chatHistory: ChatHistory): PaginatedGui {
 
         if (layout.any { it.length != 9 }) throw IllegalArgumentException("Invalid inventory format.")
 
         val gui = Gui.paginated()
             .rows(layout.size)
-            .title(title.applyPlaceholders(mapOf("%player%" to player.name!!)).component())
+            .title(title.applyPlaceholders(mapOf("%executor%" to executor.name)).component())
             .disableAllInteractions()
             .create()
 
         val layoutJoined = layout.joinToString("")
 
-        val placeholders = mutableMapOf("%target_name%" to player.name!!, "%target_uuid%" to player.uniqueId.toString())
+        val placeholders = mutableMapOf("%target_name%" to reportedPlayer.name, "%target_uuid%" to reportedPlayer.uniqueId.toString())
 
         for (charIndex in layout.joinToString("").indices) {
             val char = layoutJoined[charIndex]
@@ -59,17 +56,34 @@ class InventoryConfiguration(
             })
         }
 
-        chatHistory.chats.forEach {
+        chatHistory.chats.forEach { chat -> run {
 
-            val chatHistoryItem = items.firstOrNull { item -> item.identifier == '*' }
-                ?: throw NullPointerException("Chat history item configuration not found. (identifier: \'*\')")
+                val chatHistoryItem = items.firstOrNull { item -> item.identifier == '*' }
+                    ?: throw NullPointerException("Chat history item configuration not found. (identifier: \'*\')")
 
-            placeholders["%content%"] = it.content
-            placeholders["%date%"] = SimpleDateFormat("yyyy-MM-dd hh:mm:ss").format(Date.from(it.date))
-            placeholders["%is_reported%"] = it.isReported.toString()
+                placeholders["%content%"] = chat.content
+                placeholders["%date%"] = SimpleDateFormat("yyyy-MM-dd hh:mm:ss").format(Date.from(chat.date))
+                placeholders["%is_reported%"] = chat.isReported.toString()
 
-            gui.addItem(chatHistoryItem.item(placeholders))
+                gui.addItem(chatHistoryItem.item(placeholders).also { guiItem ->
+                    guiItem.setAction { _ ->
+                        run {
+                            if (!chat.isReported) {
+                                if (ChatReportBot.report(executor, reportedPlayer, chat)) {
+                                    executor.sendMessage("<green>Message has been successfully reported.".component())
+                                } else {
+                                    executor.sendMessage("<red>Fail to report message.".component())
+                                }
+                            } else {
+                                executor.sendMessage("<red>Message has been already reported.".component())
+                            }
 
+
+                            gui.close(executor)
+                        }
+                    }
+                })
+            }
         }
 
         return gui

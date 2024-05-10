@@ -4,7 +4,9 @@ import me.centauri07.chatreport.util.serializer.YamlFileSerializer
 import java.io.File
 import java.util.UUID
 
-class ChatHistoryRepository(private val repositoryFolder: File) {
+object ChatHistoryRepository {
+
+    lateinit var repositoryFolder: File
 
     private val cache: MutableMap<UUID, YamlFileSerializer<ChatHistory>> = mutableMapOf()
 
@@ -20,7 +22,7 @@ class ChatHistoryRepository(private val repositoryFolder: File) {
                 val chatHistoryYaml =
                     YamlFileSerializer(
                         ChatHistory::class.java,
-                        ChatHistory(uuid, listOf()),
+                        ChatHistory(uuid, mutableListOf()),
                         playerChatHistoryFile
                     )
 

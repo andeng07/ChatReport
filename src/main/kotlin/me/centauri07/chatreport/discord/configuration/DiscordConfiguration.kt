@@ -5,11 +5,11 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class DiscordConfiguration(
-    val token: String = "",
+    val token: String,
     @SerialName("chat-report-channel")
-    val chatReportChannel: Long = 0,
+    val chatReportChannel: Long,
     @SerialName("chat-report-message-embed")
-    val chatReportMessageEmbed: EmbedMessage = EmbedMessage(),
+    val chatReportMessageEmbed: EmbedMessage,
     @SerialName("mute-command")
-    val muteCommand: String = "mute %player% %duration% %reason%"
+    val muteCommand: String
 )

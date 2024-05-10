@@ -1,7 +1,8 @@
 package me.centauri07.chatreport.discord
 
 import me.centauri07.chatreport.discord.configuration.DiscordConfiguration
-import me.centauri07.chatreport.plugin.chat.ChatHistory
+import me.centauri07.chatreport.discord.configuration.EmbedMessage
+import me.centauri07.chatreport.plugin.chat.Chat
 import me.centauri07.chatreport.util.extensions.applyPlaceholders
 import me.centauri07.chatreport.util.extensions.isValidDuration
 import me.centauri07.chatreport.util.serializer.YamlFileSerializer
@@ -15,22 +16,22 @@ import net.dv8tion.jda.api.interactions.modals.Modal
 import net.dv8tion.jda.api.requests.GatewayIntent
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
-import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
 import java.text.SimpleDateFormat
-import java.time.Instant
 import java.util.*
 
-class ChatReportBot(private val plugin: JavaPlugin) : BotApplication() {
-
+object ChatReportBot : BotApplication() {
     private lateinit var discordConfiguration: DiscordConfiguration
 
     override fun onLoad() {
-        dataFolder = plugin.dataFolder
 
         discordConfiguration = YamlFileSerializer(
             DiscordConfiguration::class.java,
-            DiscordConfiguration(),
+            DiscordConfiguration(
+                "token", 0, EmbedMessage(
+                    title = "Chat report from %executor%"
+                ), "mute %player% %duration% %reason%"
+            ),
             File(dataFolder, "configuration.yml")
         ).value
 
@@ -46,22 +47,24 @@ class ChatReportBot(private val plugin: JavaPlugin) : BotApplication() {
         registerListener(this)
     }
 
-    fun report(reporter: Player, chatHistory: ChatHistory, date: Instant): Boolean {
+    fun report(reporter: Player, reportedPlayer: Player, chat: Chat): Boolean {
 
         val channel = jda.getTextChannelById(discordConfiguration.chatReportChannel) ?: throw NullPointerException("Report channel not found.")
-
-        val chat = chatHistory.chats.firstOrNull { it.date == date } ?: return false
 
         channel.sendMessageEmbeds(
             discordConfiguration.chatReportMessageEmbed.toDiscordEmbed(
                 mapOf(
                     "%reporter_name%" to reporter.name,
                     "%reporter_uuid%" to reporter.uniqueId.toString(),
+                    "%reported_player_name%" to reportedPlayer.name,
+                    "reported_player_uuid%" to reporter.uniqueId.toString(),
                     "%content%" to chat.content,
                     "%date%" to SimpleDateFormat("yyyy-MM-dd hh:mm:ss").format(Date.from(chat.date)),
                 )
             ).build()
         )
+
+        chat.isReported = true
 
         return true
 
