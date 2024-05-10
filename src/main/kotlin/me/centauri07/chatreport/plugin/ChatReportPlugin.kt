@@ -3,6 +3,7 @@ package me.centauri07.chatreport.plugin
 import io.papermc.paper.event.player.AsyncChatEvent
 import me.centauri07.chatreport.discord.ChatReportBot
 import me.centauri07.chatreport.plugin.chat.Chat
+import me.centauri07.chatreport.plugin.chat.ChatHistory
 import me.centauri07.chatreport.plugin.chat.ChatHistoryRepository
 import me.centauri07.chatreport.plugin.configuration.InventoryConfiguration
 import me.centauri07.chatreport.plugin.configuration.PluginConfiguration
@@ -35,6 +36,8 @@ class ChatReportPlugin : JavaPlugin(), Listener {
 
         Bukkit.getPluginManager().registerEvents(this, this)
 
+        getCommand("chatreport")?.setExecutor(this)
+
         ChatReportBot.enable()
     }
 
@@ -43,16 +46,14 @@ class ChatReportPlugin : JavaPlugin(), Listener {
 
         Bukkit.getScheduler().runTaskAsynchronously(
             this, Runnable {
-                ChatHistoryRepository.find(e.player.uniqueId)
-                    ?.addChat(
-                        pluginConfiguration.chatHistoryLength,
-                        Chat(e.message().toPlainText(), Instant.now(), false)
-                    )
+                val chatHistory = ChatHistoryRepository.find(e.player.uniqueId) ?: ChatHistory(e.player.uniqueId, mutableListOf()).also {
+                    ChatHistoryRepository.insert(e.player.uniqueId, it)
+                }
+
+                chatHistory.addChat(pluginConfiguration.chatHistoryLength, Chat(e.message().toPlainText(), Instant.now(), false))
 
                 ChatHistoryRepository.save(e.player.uniqueId)
             })
-
-        getCommand("chatreport")?.setExecutor(this)
 
     }
 
