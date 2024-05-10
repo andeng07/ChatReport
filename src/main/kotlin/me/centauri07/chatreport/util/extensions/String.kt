@@ -12,7 +12,7 @@ fun String.applyPlaceholders(placeholders: Map<String, String>): String {
     var withPlaceholder = this
 
     placeholders.forEach {
-        withPlaceholder = replace(it.key, it.value)
+        withPlaceholder = withPlaceholder.replace(it.key, it.value)
     }
 
     return withPlaceholder
