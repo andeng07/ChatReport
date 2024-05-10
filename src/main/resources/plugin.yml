@@ -1,0 +1,12 @@
+name: ChatReport
+version: 1.0
+main: me.centauri07.chatreport.plugin.ChatReportBot
+api-version: 1.20
+commands:
+  chatreport:
+    usage: /chatreport <player>
+    description: report a message from a player
+
+libraries:
+  - net.dv8tion:JDA:5.0.0-beta.23
+  - com.charleskorn.kaml:kaml:0.54.0
