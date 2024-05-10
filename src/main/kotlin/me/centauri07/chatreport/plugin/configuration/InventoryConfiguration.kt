@@ -27,17 +27,23 @@ class InventoryConfiguration(
 
     fun inventory(executor: Player, reportedPlayer: Player, chatHistory: ChatHistory): PaginatedGui {
 
-        if (layout.any { it.length != 9 }) throw IllegalArgumentException("Invalid inventory format.")
+        if (layout.any { it.length != 9 } || layout.isEmpty()) throw IllegalArgumentException("Invalid inventory format.")
+
+        val placeholders =
+            mutableMapOf(
+                "%executor_name" to executor.name,
+                "%executor_uuid" to executor.uniqueId.toString(),
+                "%target_name%" to reportedPlayer.name,
+                "%target_uuid%" to reportedPlayer.uniqueId.toString()
+            )
 
         val gui = Gui.paginated()
             .rows(layout.size)
-            .title(title.applyPlaceholders(mapOf("%executor%" to executor.name)).component())
+            .title(title.applyPlaceholders(placeholders).component())
             .disableAllInteractions()
             .create()
 
         val layoutJoined = layout.joinToString("")
-
-        val placeholders = mutableMapOf("%target_name%" to reportedPlayer.name, "%target_uuid%" to reportedPlayer.uniqueId.toString())
 
         for (charIndex in layout.joinToString("").indices) {
             val char = layoutJoined[charIndex]
@@ -56,11 +62,13 @@ class InventoryConfiguration(
             })
         }
 
-        chatHistory.chats.forEach { chat -> run {
+        chatHistory.chats.forEachIndexed { index, chat ->
+            run {
 
                 val chatHistoryItem = items.firstOrNull { item -> item.identifier == '*' }
                     ?: throw NullPointerException("Chat history item configuration not found. (identifier: \'*\')")
 
+                placeholders["%index%"] = (index + 1).toString()
                 placeholders["%content%"] = chat.content
                 placeholders["%date%"] = SimpleDateFormat("yyyy-MM-dd hh:mm:ss").format(Date.from(chat.date))
                 placeholders["%is_reported%"] = chat.isReported.toString()
