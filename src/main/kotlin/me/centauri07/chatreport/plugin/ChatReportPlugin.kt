@@ -124,7 +124,7 @@ class ChatReportPlugin : JavaPlugin(), Listener {
         }
 
         ChatHistoryRepository.find(player.uniqueId)
-            ?.let { pluginConfiguration.inventoryConfiguration.inventory(sender, player, it) }
+            ?.let { pluginConfiguration.inventoryConfiguration.inventory(sender, player, it).open(player) }
             ?: sender.sendMessage("<red>Player doesn't have a chat history.")
 
 
