@@ -7,6 +7,8 @@ import kotlinx.serialization.Serializable
 data class PluginConfiguration(
     @SerialName("database-connection-string")
     val databaseConnectionString: String,
+    @SerialName("chat-history-length")
     val chatHistoryLength: Int,
+    @SerialName("inventory-configuration")
     val inventoryConfiguration: InventoryConfiguration
 )
