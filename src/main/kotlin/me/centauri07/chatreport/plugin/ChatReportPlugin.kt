@@ -82,11 +82,17 @@ class ChatReportPlugin : JavaPlugin(), Listener {
 
         Bukkit.getScheduler().runTaskAsynchronously(
             this, Runnable {
-                val chatHistory = ChatHistoryRepository.find(e.player.uniqueId) ?: ChatHistory(e.player.uniqueId, mutableListOf()).also {
+                val chatHistory = ChatHistoryRepository.find(e.player.uniqueId) ?: ChatHistory(
+                    e.player.uniqueId,
+                    mutableListOf()
+                ).also {
                     ChatHistoryRepository.insert(e.player.uniqueId, it)
                 }
 
-                chatHistory.addChat(pluginConfiguration.chatHistoryLength, Chat(e.message().toPlainText(), Instant.now(), false))
+                chatHistory.addChat(
+                    pluginConfiguration.chatHistoryLength,
+                    Chat(e.message().toPlainText(), Instant.now(), false)
+                )
 
                 ChatHistoryRepository.save(e.player.uniqueId)
             })
