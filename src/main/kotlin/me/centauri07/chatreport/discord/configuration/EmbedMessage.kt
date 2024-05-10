@@ -2,6 +2,7 @@ package me.centauri07.chatreport.discord.configuration
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import me.centauri07.chatreport.util.extensions.applyPlaceholders
 import net.dv8tion.jda.api.EmbedBuilder
 import java.awt.Color
 
@@ -24,43 +25,36 @@ data class EmbedMessage(
         embedBuilder.apply {
             author?.apply {
                 setAuthor(
-                    name?.also { placeholderValues.forEach { pv -> it.replace("%${pv.key}%", pv.value) } },
-                    url?.also { placeholderValues.forEach { pv -> it.replace("%${pv.key}%", pv.value) } },
-                    iconURL?.also { placeholderValues.forEach { pv -> it.replace("%${pv.key}%", pv.value) } }
+                    name?.applyPlaceholders(placeholderValues),
+                    url?.applyPlaceholders(placeholderValues),
+                    iconURL?.applyPlaceholders(placeholderValues)
                 )
             }
 
             setColor(Color.decode(color))
 
-            setTitle(title?.also { placeholderValues.forEach { pv -> it.replace("%${pv.key}%", pv.value) } })
+            setTitle(title?.applyPlaceholders(placeholderValues))
 
-            setUrl(url?.also { placeholderValues.forEach { pv -> it.replace("%${pv.key}%", pv.value) } })
+            setUrl(url?.applyPlaceholders(placeholderValues))
 
-            setDescription(description?.also {
-                placeholderValues.forEach { pv ->
-                    it.replace(
-                        "%${pv.key}%",
-                        pv.value
-                    )
-                }
-            })
+            setDescription(description?.applyPlaceholders(placeholderValues))
 
-            setThumbnail(thumbnail?.also { placeholderValues.forEach { pv -> it.replace("%${pv.key}%", pv.value) } })
+            setThumbnail(thumbnail?.applyPlaceholders(placeholderValues))
 
             this@EmbedMessage.fields.forEach {
                 addField(
-                    it.name.also { placeholderValues.forEach { pv -> it.replace("%${pv.key}%", pv.value) } },
-                    it.value.also { placeholderValues.forEach { pv -> it.replace("%${pv.key}%", pv.value) } },
+                    it.name.applyPlaceholders(placeholderValues),
+                    it.value.applyPlaceholders(placeholderValues),
                     it.inline
                 )
             }
 
-            setImage(image?.also { placeholderValues.forEach { pv -> it.replace("%${pv.key}%", pv.value) } })
+            setImage(image?.applyPlaceholders(placeholderValues))
 
             footer?.apply {
                 setFooter(
-                    text?.also { placeholderValues.forEach { pv -> it.replace("%${pv.key}%", pv.value) } },
-                    iconURL?.also { placeholderValues.forEach { pv -> it.replace("%${pv.key}%", pv.value) } })
+                    text?.applyPlaceholders(placeholderValues),
+                    iconURL?.applyPlaceholders(placeholderValues))
             }
         }
 
