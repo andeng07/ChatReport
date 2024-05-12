@@ -1,7 +1,7 @@
 name: ChatReport
 version: 1.0
-main: me.centauri07.chatreport.plugin.ChatReportBot
-api-version: 1.20
+main: me.centauri07.chatreport.plugin.ChatReportPlugin
+api-version: 1.13
 commands:
   chatreport:
     usage: /chatreport <player>
