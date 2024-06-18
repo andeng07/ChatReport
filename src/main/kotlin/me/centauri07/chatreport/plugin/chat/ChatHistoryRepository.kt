@@ -1,6 +1,6 @@
 package me.centauri07.chatreport.plugin.chat
 
-import me.centauri07.chatreport.util.serializer.YamlFileSerializer
+import me.centauri07.chatreport.util.serializer.JsonFileSerializer
 import java.io.File
 import java.util.UUID
 
@@ -8,42 +8,37 @@ object ChatHistoryRepository {
 
     lateinit var repositoryFolder: File
 
-    private val cache: MutableMap<UUID, YamlFileSerializer<ChatHistory>> = mutableMapOf()
+    private val cache: MutableMap<UUID, JsonFileSerializer<ChatHistory>> = mutableMapOf()
 
     fun find(uuid: UUID): ChatHistory? {
+        val chatHistory: ChatHistory? = cache[uuid]?.value
 
-        var chatHistory: ChatHistory? = cache[uuid]?.value
+        if (chatHistory != null) return chatHistory
 
-        if (chatHistory == null) {
+        val playerChatHistoryFile = File(repositoryFolder, "$uuid.json")
 
-            val playerChatHistoryFile = File(repositoryFolder, "$uuid.yml")
+        if (!playerChatHistoryFile.exists()) return null
 
-            if (playerChatHistoryFile.exists()) {
-                val chatHistoryYaml =
-                    YamlFileSerializer(
-                        ChatHistory::class.java,
-                        ChatHistory(uuid, mutableListOf()),
-                        playerChatHistoryFile
-                    )
 
-                chatHistory = chatHistoryYaml.value
+        val chatHistoryJson =
+            JsonFileSerializer(
+                ChatHistory::class.java,
+                ChatHistory(mutableListOf()),
+                playerChatHistoryFile
+            )
 
-                cache[uuid] = chatHistoryYaml
-            }
+        cache[uuid] = chatHistoryJson
 
-        }
-
-        return chatHistory
-
+        return chatHistoryJson.value
     }
 
     fun insert(uuid: UUID, chatHistory: ChatHistory): Boolean {
         if (find(uuid) != null) return false
 
-        val playerChatHistoryFile = File(repositoryFolder, "$uuid.yml")
+        val playerChatHistoryFile = File(repositoryFolder, "$uuid.json")
 
         val chatHistoryYaml =
-            YamlFileSerializer(
+            JsonFileSerializer(
                 ChatHistory::class.java,
                 chatHistory,
                 playerChatHistoryFile
@@ -58,6 +53,10 @@ object ChatHistoryRepository {
         cache[uuid]?.file?.delete() ?: return false
         cache.remove(uuid)
         return true
+    }
+
+    fun invalidateCache(uuid: UUID) {
+        cache.remove(uuid)
     }
 
     fun save(uuid: UUID): Boolean {

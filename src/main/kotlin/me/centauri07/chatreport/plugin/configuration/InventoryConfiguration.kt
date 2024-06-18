@@ -11,9 +11,11 @@ import me.centauri07.chatreport.plugin.chat.ChatHistory
 import me.centauri07.chatreport.util.extensions.applyPlaceholders
 import me.centauri07.chatreport.util.extensions.component
 import org.bukkit.Material
+import org.bukkit.OfflinePlayer
 import org.bukkit.entity.Player
 import java.lang.NullPointerException
 import java.text.SimpleDateFormat
+import java.time.Instant
 import java.util.*
 
 @Serializable
@@ -25,7 +27,7 @@ class InventoryConfiguration(
     val items: List<Item>
 ) {
 
-    fun inventory(executor: Player, reportedPlayer: Player, chatHistory: ChatHistory): PaginatedGui {
+    fun inventory(executor: Player, reportedPlayer: OfflinePlayer, chatHistory: ChatHistory): PaginatedGui {
 
         if (layout.any { it.length != 9 } || layout.isEmpty()) throw IllegalArgumentException("Invalid inventory format.")
 
@@ -33,7 +35,7 @@ class InventoryConfiguration(
             mutableMapOf(
                 "%executor_name" to executor.name,
                 "%executor_uuid" to executor.uniqueId.toString(),
-                "%target_name%" to reportedPlayer.name,
+                "%target_name%" to reportedPlayer.name!!,
                 "%target_uuid%" to reportedPlayer.uniqueId.toString()
             )
 
@@ -62,7 +64,7 @@ class InventoryConfiguration(
             })
         }
 
-        chatHistory.chats.forEachIndexed { index, chat ->
+        chatHistory.chats.reversed().forEachIndexed { index, chat ->
             run {
 
                 val chatHistoryItem = items.firstOrNull { item -> item.identifier == '*' }
@@ -70,24 +72,31 @@ class InventoryConfiguration(
 
                 placeholders["%index%"] = (index + 1).toString()
                 placeholders["%content%"] = chat.content
-                placeholders["%date%"] = SimpleDateFormat("yyyy-MM-dd hh:mm:ss").format(Date.from(chat.date))
-                placeholders["%is_reported%"] = chat.isReported.toString()
+                placeholders["%date%"] = SimpleDateFormat("MMM dd, yyyy (EEEE) hh:mm a").format(Date.from(Instant.ofEpochMilli(chat.date)))
+                placeholders["%is_reported%"] = chat.isReported.toString().capitalize()
 
                 gui.addItem(chatHistoryItem.item(placeholders).also { guiItem ->
                     guiItem.setAction { _ ->
-                        run {
-                            if (!chat.isReported) {
-                                if (ChatReportBot.report(executor, reportedPlayer, chat)) {
-                                    executor.sendMessage("<green>Message has been successfully reported.".component())
-                                } else {
-                                    executor.sendMessage("<red>Fail to report message.".component())
-                                }
-                            } else {
-                                executor.sendMessage("<red>Message has been already reported.".component())
-                            }
-
+                        run action@ {
 
                             gui.close(executor)
+
+                            if (executor.uniqueId == reportedPlayer.uniqueId) {
+                                executor.sendMessage("<red>You can't report your own message.".component())
+                                return@action
+                            }
+
+                            if (chat.isReported) {
+                                executor.sendMessage("<red>Message has been already reported.".component())
+                                return@action
+                            }
+
+                            if (ChatReportBot.report(executor, reportedPlayer, chat)) {
+                                executor.sendMessage("<green>Message has been successfully reported.".component())
+                            } else {
+                                executor.sendMessage("<red>Fail to report message.".component())
+                            }
+
                         }
                     }
                 })

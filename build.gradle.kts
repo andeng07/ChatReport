@@ -25,13 +25,12 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.20-R0.1-SNAPSHOT")
-    compileOnly("net.dv8tion:JDA:5.0.0-beta.23")
-    compileOnly("com.charleskorn.kaml:kaml:0.54.0")
+    implementation("net.dv8tion:JDA:5.0.0-beta.23")
+    implementation("com.charleskorn.kaml:kaml:0.54.0")
 
     implementation("dev.triumphteam:triumph-gui:3.1.7")
-    implementation("com.github.andeng07:JarbAPI:a172928b4e")
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(17)
 }

@@ -10,10 +10,10 @@ data class ChatHistory(
     fun addChat(limit: Int, chat: Chat) {
 
         while (chats.size >= limit) {
-            chats.dropLast(1)
+            chats.removeAt(0)
         }
 
-        chats.add(0, chat)
+        chats.add(chat)
 
     }
 

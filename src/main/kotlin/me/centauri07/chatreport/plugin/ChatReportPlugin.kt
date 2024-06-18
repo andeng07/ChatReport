@@ -18,12 +18,18 @@ import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
+import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
 import java.time.Instant
-import java.util.*
 
 class ChatReportPlugin : JavaPlugin(), Listener {
+
+
+    companion object {
+        lateinit var instance: JavaPlugin
+            private set
+    }
 
     private val pluginConfiguration: PluginConfiguration = YamlFileSerializer(
         PluginConfiguration::class.java,
@@ -62,41 +68,48 @@ class ChatReportPlugin : JavaPlugin(), Listener {
                 )
             )
         ),
-        File(dataFolder, "config.yml")
+        File(dataFolder, "plugin-config.yml")
     ).value
 
     override fun onEnable() {
+        instance = this
+
         ChatReportBot.dataFolder = dataFolder
 
-        ChatHistoryRepository.repositoryFolder = dataFolder
+        ChatReportBot.enable()
+
+        ChatHistoryRepository.repositoryFolder = File(dataFolder, "chat-history")
 
         Bukkit.getPluginManager().registerEvents(this, this)
 
         getCommand("chatreport")?.setExecutor(this)
-
-        ChatReportBot.enable()
     }
 
     @EventHandler
     fun on(e: AsyncChatEvent) {
+        val start = System.currentTimeMillis()
 
-        Bukkit.getScheduler().runTaskAsynchronously(
-            this, Runnable {
-                val chatHistory = ChatHistoryRepository.find(e.player.uniqueId) ?: ChatHistory(
-                    e.player.uniqueId,
-                    mutableListOf()
-                ).also {
-                    ChatHistoryRepository.insert(e.player.uniqueId, it)
-                }
+        val chatHistory = ChatHistoryRepository.find(e.player.uniqueId) ?: ChatHistory(
+            mutableListOf()
+        ).also {
+            ChatHistoryRepository.insert(e.player.uniqueId, it)
+        }
 
-                chatHistory.addChat(
-                    pluginConfiguration.chatHistoryLength,
-                    Chat(e.message().toPlainText(), Instant.now(), false)
-                )
+        chatHistory.addChat(
+            pluginConfiguration.chatHistoryLength,
+            Chat(e.message().toPlainText(), Instant.now().toEpochMilli(), false)
+        )
 
-                ChatHistoryRepository.save(e.player.uniqueId)
-            })
+        Bukkit.getScheduler().runTaskAsynchronously(this, Runnable {
+            ChatHistoryRepository.save(e.player.uniqueId)
+        })
 
+        println("Time elapsed: ${System.currentTimeMillis() - start}")
+    }
+
+    @EventHandler
+    fun on(e: PlayerQuitEvent) {
+        ChatHistoryRepository.invalidateCache(e.player.uniqueId)
     }
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
@@ -112,19 +125,10 @@ class ChatReportPlugin : JavaPlugin(), Listener {
         }
 
         val player =
-            Bukkit.getOfflinePlayer(args[0]).player ?: Bukkit.getOfflinePlayer(UUID.fromString(args[0])).player ?: run {
-                sender.sendMessage("<red>Unable to find player. (${args[0]})")
-
-                return true
-            }
-
-        if (player.hasPermission("chatreport.exempt")) {
-            sender.sendMessage("<red>You can't view ${player.name}'s chat history.")
-            return false
-        }
+            Bukkit.getOfflinePlayer(args[0])
 
         ChatHistoryRepository.find(player.uniqueId)
-            ?.let { pluginConfiguration.inventoryConfiguration.inventory(sender, player, it).open(player) }
+            ?.let { pluginConfiguration.inventoryConfiguration.inventory(sender, player, it).open(sender) }
             ?: sender.sendMessage("<red>Player doesn't have a chat history.")
 
 
